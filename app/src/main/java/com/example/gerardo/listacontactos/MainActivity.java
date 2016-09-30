@@ -39,9 +39,10 @@ public class MainActivity extends AppCompatActivity {
         //Verificar si la versión de Android es superior a Android M para solicitar al usuario permisos de lectura de contactos
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if ((ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) ||
-                    (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED)) {
+                    (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) ||
+                    (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED)){
                 requestPermissions(new String[]{
-                        Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE
+                        Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE, Manifest.permission.SEND_SMS
                 }, READ_CONTACTS_PERMISSIONS_REQUEST);
             } else
                 imprimirContactos();
@@ -63,16 +64,27 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
                                            int position, long arg3) {
-                String num = listaContactos.getItemAtPosition(position).toString();
-                StringTokenizer llamar = new StringTokenizer(num, ":");
-                llamar.nextToken();
+                String contacto = listaContactos.getItemAtPosition(position).toString();
+                StringTokenizer tokens = new StringTokenizer(contacto, ":");
+                tokens.nextToken();
 
-                String numero = llamar.nextToken();
-                Toast.makeText(getApplicationContext(), numero, Toast.LENGTH_LONG).show();
+                String numero = tokens.nextToken();
                 realizarLlamada(numero);
-                return false;
+                return true;
             }
+        });
 
+        listaContactos.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String contacto = listaContactos.getItemAtPosition(position).toString();
+                StringTokenizer tokens = new StringTokenizer(contacto, ":");
+                tokens.nextToken();
+
+                String numero = tokens.nextToken();
+                Toast.makeText(getApplicationContext(), numero, Toast.LENGTH_LONG).show();
+                mandarMensaje(numero);
+            }
         });
     }
 
@@ -106,11 +118,24 @@ public class MainActivity extends AppCompatActivity {
 
     public void realizarLlamada(String numero) {
         Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel: " + numero));
-        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED)
             startActivity(intent);
-        } else
+        else
             Toast.makeText(getApplicationContext(), "La aplicación no cuenta con permisos para realizar llamadas", Toast.LENGTH_LONG).show();
 
+    }
+
+    public void mandarMensaje(String numero) {
+        String mensajeDefecto = "Hola";
+
+        Uri uri = Uri.parse("smsto:" + numero);
+        Intent sendIntent = new Intent(Intent.ACTION_SENDTO, uri);
+        sendIntent.putExtra("sms_body", mensajeDefecto);
+
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED)
+            startActivity(sendIntent);
+        else
+            Toast.makeText(getApplicationContext(), "La aplicación no cuenta con permisos para enviar mensajes", Toast.LENGTH_LONG).show();
     }
 
     @Override

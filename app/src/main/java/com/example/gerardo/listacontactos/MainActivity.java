@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -36,16 +37,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //Verificar si la versión de Android es superior a Android M para solicitar al usuario permisos de lectura de contactos
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if ((ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) ||
+                    (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED)) {
                 requestPermissions(new String[]{
-                        Manifest.permission.READ_CONTACTS
+                        Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE
                 }, READ_CONTACTS_PERMISSIONS_REQUEST);
             } else
                 imprimirContactos();
         } else
             imprimirContactos();
-
 
 
     }
@@ -58,23 +59,18 @@ public class MainActivity extends AppCompatActivity {
 
         listaContactos.setAdapter(adapter);
 
-        listaContactos.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener()
-        {
+        listaContactos.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
-                                           int position, long arg3)
-            {
+                                           int position, long arg3) {
                 String num = listaContactos.getItemAtPosition(position).toString();
-                StringTokenizer llamar = new StringTokenizer(num,"+");
+                StringTokenizer llamar = new StringTokenizer(num, ":");
                 llamar.nextToken();
-
 
                 String numero = llamar.nextToken();
                 Toast.makeText(getApplicationContext(), numero, Toast.LENGTH_LONG).show();
-                Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse(numero));
-                startActivity(intent);
-
-                return true;
+                realizarLlamada(numero);
+                return false;
             }
 
         });
@@ -106,6 +102,15 @@ public class MainActivity extends AppCompatActivity {
         cursor.close();
 
         return contactos;
+    }
+
+    public void realizarLlamada(String numero) {
+        Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel: " + numero));
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            startActivity(intent);
+        } else
+            Toast.makeText(getApplicationContext(), "La aplicación no cuenta con permisos para realizar llamadas", Toast.LENGTH_LONG).show();
+
     }
 
     @Override
